@@ -1,8 +1,9 @@
 use cgmath::Vector3;
-use std::cmp::min;
 use std::fmt::{Debug, Display, Formatter};
-use std::slice::Iter;
-use std::thread::current;
+
+// TODO: move Data struct and related code that is currently in main.rs into a cfg(test) block. The crate should be a library, not a binary.
+
+
 
 #[derive(Debug, Clone)]
 pub struct Data {
@@ -14,6 +15,7 @@ impl Default for Data {
         Data { some_data: 0 }
     }
 }
+
 impl Display for Data {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.write_str(&format!("{}", self.some_data))
@@ -23,7 +25,7 @@ impl Display for Data {
 struct SpatialHashGrid<D: Sized + Default + Debug + Display> {
     size_x: usize,
     size_y: usize,
-    size_z: usize,
+    size_z: usize, //FIXME: Why is this unused? THIS IS A BUG
     cubes: Vec<Option<D>>,
 }
 
@@ -83,6 +85,8 @@ impl<D: Sized + Default + Debug + Display + Clone> Voxelization<D> for SpatialHa
     }
 
     fn collect_filled_data(&mut self, min:Vector3<u32>, max:Vector3<u32>) -> Vec<D> {
+        //TODO: this function is not working correctly. Right now it will select also values which are not in
+        // selection boundary
         let idx_min = self.pos_to_index(min);
         let idx_max = self.pos_to_index(max);
 
@@ -95,16 +99,16 @@ impl<D: Sized + Default + Debug + Display + Clone> Voxelization<D> for SpatialHa
         d
     }
 }
-
+// TODO: trait name does not match purpose. Spatial hash is not about voxels. Rename.
 pub trait Voxelization<D> {
     // fn iter_mut_stuff(&mut self, min: Vector3<u32>, max: Vector3<u32>) -> Vec<&D>
-    fn new(x: usize, y: usize, z: usize) -> Self;
+    fn new(x: usize, y: usize, z: usize) -> Self; // TODO: should not be part of the trait
     fn fill_cube(&mut self, v: Vector3<u32>);
     fn get_cube_mut(&mut self, v: Vector3<u32>) -> Option<&mut D>;
     fn get_cube(&self, v: Vector3<u32>) -> Option<&D>;
     fn pos_to_index(&self, v: Vector3<u32>) -> usize;
    // fn index_bounds(&self, min:Vector3<u32>, max:Vector3<u32>, ) -> (usize, usize);
-    fn print(&self);
+    fn print(&self); // TODO: should not be part of trait!
     fn collect_filled_data(&mut self,  min:Vector3<u32>, max:Vector3<u32>) -> Vec<D>;
 }
 
@@ -147,11 +151,20 @@ fn main() {
         }
     }
 
-    let min = Vector3::new((0), (0), (0));
-    let max = Vector3::new((5), (5), (0));
+    let min = Vector3::new(3, 3, 0);
+    let max = Vector3::new(5, 5, 0);
+    // TODO: to prove the collect_filled_data is wrong, here is a voxel that is not between min and max
+    let p =Vector3 { x: 10, y: 4, z: 0 };
+    sh.fill_cube(p);
+    sh.get_cube_mut(p).unwrap().some_data = 66;
     //sh.print();
+
     //sh.get_filled_cubes_in_box_mut(min, max);
     let a = sh.collect_filled_data(min, max);
 
     println!("{:?}", a);
+    //TODO: if you see 66 printed, iterator is wrong!
 }
+
+
+//TODO: add a performance benchmark with criterion.rs
