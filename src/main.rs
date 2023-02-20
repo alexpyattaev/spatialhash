@@ -63,6 +63,11 @@ impl<D: Sized + Default + Debug + Display + Clone> Voxelization<D> for SpatialHa
         v.x as usize + v.y as usize * self.size_x + v.z as usize * (self.size_x * self.size_y)
     }
 
+    // fn index_bounds(&self, min:Vector3<u32>, max:Vector3<u32>, ) -> (usize, usize){
+    //     let idx_min = self.pos_to_index(min);
+    //     let idx_max = self.pos_to_index(max);
+    // }
+
     //For debug
     fn print(&self) {
         for y in 0..self.size_y {
@@ -77,9 +82,12 @@ impl<D: Sized + Default + Debug + Display + Clone> Voxelization<D> for SpatialHa
         }
     }
 
-    fn collect_filled_data(&mut self) -> Vec<D> {
-        let d = self
-            .cubes
+    fn collect_filled_data(&mut self, min:Vector3<u32>, max:Vector3<u32>) -> Vec<D> {
+        let idx_min = self.pos_to_index(min);
+        let idx_max = self.pos_to_index(max);
+
+        let a = &self.cubes[idx_min..idx_max];
+        let d = a
             .iter()
             .flat_map(|data| data.iter())
             .cloned()
@@ -95,8 +103,9 @@ pub trait Voxelization<D> {
     fn get_cube_mut(&mut self, v: Vector3<u32>) -> Option<&mut D>;
     fn get_cube(&self, v: Vector3<u32>) -> Option<&D>;
     fn pos_to_index(&self, v: Vector3<u32>) -> usize;
+   // fn index_bounds(&self, min:Vector3<u32>, max:Vector3<u32>, ) -> (usize, usize);
     fn print(&self);
-    fn collect_filled_data(&mut self) -> Vec<D>;
+    fn collect_filled_data(&mut self,  min:Vector3<u32>, max:Vector3<u32>) -> Vec<D>;
 }
 
 // impl IntoIterator for Data {
@@ -142,7 +151,7 @@ fn main() {
     let max = Vector3::new((5), (5), (0));
     //sh.print();
     //sh.get_filled_cubes_in_box_mut(min, max);
-    let a = sh.collect_filled_data();
+    let a = sh.collect_filled_data(min, max);
 
     println!("{:?}", a);
 }
