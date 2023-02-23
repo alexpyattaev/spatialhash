@@ -2,8 +2,7 @@ use cgmath::Vector3;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use spatial_hash::*;
-use std::fmt::{Debug, Display, Formatter};
+use spatial_hash_3d::*;
 
 #[derive(Debug)]
 pub struct Data {
@@ -16,14 +15,9 @@ impl Default for Data {
     }
 }
 
-impl Display for Data {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&format!("{}", self.some_data))
-    }
-}
-
 fn create_and_fill(x: u32, y: u32, z: u32) -> SpatialHashGrid<Data> {
-    let mut sh: SpatialHashGrid<Data> = SpatialHashGrid::new(x as usize, y as usize, z as usize);
+    let mut sh: SpatialHashGrid<Data> =
+        SpatialHashGrid::new(x as usize, y as usize, z as usize, Data::default);
     let mut count = 0;
     for (i, j, k) in itertools::iproduct!(0..x, 0..y, 0..z) {
         let pos = Vector3::new(i, j, k);
@@ -57,13 +51,13 @@ fn generate_bounding_box(
 }
 
 fn bench_get_filled_data(sh: &SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for i in sh.iter_filled_boxes(min, max) {
+    for i in sh.iter_cubes(min, max) {
         black_box(i);
     }
 }
 
 fn bench_modify_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for i in sh.iter_filled_boxes_mut(min, max) {
+    for i in sh.iter_cubes_mut(min, max) {
         i.some_data += 1;
     }
 }
