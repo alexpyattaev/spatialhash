@@ -7,7 +7,7 @@ description = "3D spatial hash grid implementation optimized for speed. What it 
 repository = "https://github.com/alexpyattaev/spatialhash"
 readme = "README.md"
 license = "GPL-2.0-or-later"
-keywords = [ "spatial hash", "3D", "gamedev"]
+keywords = [ "spatial", "3D", "gamedev"]
 categories = ["data-structures", "game-development","graphics"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
