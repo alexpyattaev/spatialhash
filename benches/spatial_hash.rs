@@ -21,7 +21,7 @@ fn create_and_fill(x: u32, y: u32, z: u32) -> SpatialHashGrid<Data> {
     let mut count = 0;
     for (i, j, k) in itertools::iproduct!(0..x, 0..y, 0..z) {
         let pos = Vector3::new(i, j, k);
-        sh.fill_cube(pos, Data { some_data: count });
+        sh[pos] = Data { some_data: count };
         count += 1;
     }
     sh
@@ -51,14 +51,15 @@ fn generate_bounding_box(
 }
 
 fn bench_get_filled_data(sh: &SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for i in sh.iter_cubes(min, max) {
+    for (c, i) in sh.iter_cubes(min, max) {
+        black_box(c);
         black_box(i);
     }
 }
 
 fn bench_modify_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for i in sh.iter_cubes_mut(min, max) {
-        i.some_data += 1;
+    for (c, i) in sh.iter_cubes_mut(min, max) {
+        i.some_data += c.x;
     }
 }
 
