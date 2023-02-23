@@ -28,7 +28,7 @@ fn create_and_fill(x: u32, y: u32, z: u32) -> SpatialHashGrid<Data> {
         for k in 0..y {
             for z in 0..z {
                 let pos = Vector3::new(j, k, z);
-                sh.fill_cube(pos);
+                sh.fill_cube(pos, Data::default);
                 if let Some(cube) = sh.get_cube_mut(pos) {
                     cube.some_data = count;
                     count += 1;
@@ -62,17 +62,44 @@ fn generate_bounding_box(
     (min, max)
 }
 
-fn bench_get_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for i in sh.collect_filled_data(min, max) {
+fn bench_get_filled_data(sh: &SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
+    for i in sh.iter_filled_boxes(min, max) {
         black_box(i);
     }
 }
-
-
+fn bench_modify_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
+    for i in sh.iter_filled_boxes_mut(min, max) {
+        i.some_data += 1;
+    }
+}
 
 pub fn bench_get_data_if_there(c: &mut Criterion) {
     let mut rng = SmallRng::seed_from_u64(42);
-    let mut group = c.benchmark_group("spatialhash lookups");
+
+    let mut group = c.benchmark_group("lookups");
+
+    for size in [5u32, 10, 20] {
+        group.bench_with_input(
+            criterion::BenchmarkId::from_parameter(size),
+            &size,
+            |b, &size| {
+                //generate max border values for the base volume, Max value for each axis is never larger than 20
+                let (x, y, z) = (size, size, size);
+                //generate bounding volume based on the previous values, each value is never larger than "max border values"
+
+                //fill general space
+                let spatial = create_and_fill(x, y, z);
+
+                b.iter(|| {
+                    let (min, max) = generate_bounding_box(&mut rng, x, y, z);
+                    //bounding box is located in general space, look for the data in bounding box
+                    bench_get_filled_data(&spatial, min, max);
+                })
+            },
+        );
+    }
+    drop(group);
+    let mut group = c.benchmark_group("edits");
 
     for size in [5u32, 10, 20] {
         group.bench_with_input(
@@ -92,7 +119,8 @@ pub fn bench_get_data_if_there(c: &mut Criterion) {
                 b.iter(|| {
                     let (min, max) = generate_bounding_box(&mut rng, x, y, z);
                     //bounding box is located in general space, look for the data in bounding box
-                    bench_get_filled_data(&mut spatial, min, max);
+                    bench_modify_filled_data(&mut spatial, min, max);
+                    black_box(&spatial);
                 })
             },
         );

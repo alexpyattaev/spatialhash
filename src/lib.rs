@@ -1,17 +1,17 @@
 // TODO: move Data struct and related code that is currently in lib into a cfg(test) block. The crate should be a library, not a binary.
 use cgmath::Vector3;
-use std::fmt::{Debug, Display, Formatter};
-use std::ops:: RangeInclusive;
 use itertools::{ConsTuples, Product};
+use std::fmt::{Debug, Formatter};
+use std::ops::RangeInclusive;
 
-pub struct SpatialHashGrid<D: Sized + Default + Debug + Display> {
+pub struct SpatialHashGrid<D: Sized> {
     size_x: usize,
     size_y: usize,
     size_z: usize,
     cubes: Vec<Option<D>>,
 }
 
-impl<D: Sized + Default + Debug + Display + Clone> SpatialHashGrid<D> {
+impl<D: Sized> SpatialHashGrid<D> {
     pub fn new(x: usize, y: usize, z: usize) -> Self {
         let cap = x * y * z;
         let mut d = Vec::with_capacity(cap);
@@ -24,13 +24,13 @@ impl<D: Sized + Default + Debug + Display + Clone> SpatialHashGrid<D> {
         }
     }
     fn pos_to_index(&self, v: Vector3<u32>) -> Option<usize> {
-        if (v.x >= self.size_x as u32)  || (v.y >= self.size_y as u32)|| (v.z >= self.size_z as u32)
+        if (v.x >= self.size_x as u32) || (v.y >= self.size_y as u32) || (v.z >= self.size_z as u32)
         {
-            return  None;
+            return None;
         }
-        return Some(v.x as usize + v.y as usize * self.size_x + v.z as usize * (self.size_x * self.size_y));
-
-
+        return Some(
+            v.x as usize + v.y as usize * self.size_x + v.z as usize * (self.size_x * self.size_y),
+        );
     }
 
     #[allow(dead_code)]
@@ -43,49 +43,43 @@ impl<D: Sized + Default + Debug + Display + Clone> SpatialHashGrid<D> {
     }
 }
 
-impl<D: Sized + Default + Debug + Display+ Clone> Debug for SpatialHashGrid<D> where SpatialHashGrid<D>:Hashing<D> {
+impl<D: Debug> Debug for SpatialHashGrid<D>
+where
+    SpatialHashGrid<D>: Hashing<D>,
+{
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        //assert_eq!(self.size_z, 0);
-
-        let mut slice_collection:Vec<Vec<Option<D>>> = Vec::new();
-
+        write!(
+            f,
+            "<SpatialHashGrid {}x{}x{}:\n",
+            self.size_x, self.size_y, self.size_z
+        )?;
         for z in 0..self.size_z {
-
-                for x in 0..self.size_x {
-                    let mut slice:Vec<Option<D>> = Vec::new();
-                    for y in 0..self.size_y {
-                        let v = Vector3::new(x as u32, y as u32, z as u32);
-                         let t = match self.pos_to_index(v) {
-                            Some(t) =>  slice.push(self.cubes[t].clone()),
-                            None => continue,
-                        };
-                    }
-                    slice_collection.push(slice);
+            write!(f, "#Slice z={}:\n", z)?;
+            for x in 0..self.size_x {
+                for y in 0..self.size_y {
+                    let v = Vector3::new(x as u32, y as u32, z as u32);
+                    let idx = self.pos_to_index(v).expect("This can not go wrong");
+                    match &self.cubes[idx] {
+                        Some(t) => write!(f, "{:?}, ", t)?,
+                        None => write!(f, "None, ")?,
+                    };
                 }
-
-
+                write!(f, "\n")?; // finish row in a slice
             }
-        for i in  slice_collection{
-            for j in &i {
-
-                let t = match j {
-                            Some(t) =>  println!("{:?}", i),
-                            None => println!("  |"),
-                        };
-            }
-            println!("\n");
         }
-        todo!()
-
+        write!(f, ">")
     }
 }
-pub struct BoxIterator <'a, D: Sized + Default + Debug + Display>{
+
+pub struct BoxIteratorMut<'a, D: Sized> {
     data: &'a mut SpatialHashGrid<D>,
-    iter: ConsTuples<Product<Product<RangeInclusive<u32>, RangeInclusive<u32>>, RangeInclusive<u32>>, ((u32, u32), u32)>,
+    iter: ConsTuples<
+        Product<Product<RangeInclusive<u32>, RangeInclusive<u32>>, RangeInclusive<u32>>,
+        ((u32, u32), u32),
+    >,
 }
 
-impl  <'a, D: Sized + Default + Debug + Display+ Clone> Iterator for BoxIterator<'a, D>
-{
+impl<'a, D: Sized> Iterator for BoxIteratorMut<'a, D> {
     type Item = &'a mut D;
 
     #[inline]
@@ -94,20 +88,20 @@ impl  <'a, D: Sized + Default + Debug + Display+ Clone> Iterator for BoxIterator
             let (x, y, z) = self.iter.next()?;
             let c = Vector3 { x, y, z };
             let idx = match self.data.pos_to_index(c) {
-                Some(idx)=>idx,
-                None=>{continue;}
+                Some(idx) => idx,
+                None => {
+                    continue;
+                }
             };
             unsafe {
-                match self.data.cubes.get_mut(idx){
-                    Some(cube) => {
-                        match cube {
-                            Some(d) => {
-                                let d = d as *mut D;
-                                return d.as_mut();
-                            },
-                            None => {}
+                match self.data.cubes.get_mut(idx) {
+                    Some(cube) => match cube {
+                        Some(d) => {
+                            let d = d as *mut D;
+                            return d.as_mut();
                         }
-                    }
+                        None => {}
+                    },
                     None => {}
                 }
             }
@@ -115,14 +109,65 @@ impl  <'a, D: Sized + Default + Debug + Display+ Clone> Iterator for BoxIterator
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        todo!()
+        let (_min, max) = self.iter.size_hint();
+        (0, max)
+    }
+}
+
+pub struct BoxIterator<'a, D: Sized> {
+    data: &'a SpatialHashGrid<D>,
+    iter: ConsTuples<
+        Product<Product<RangeInclusive<u32>, RangeInclusive<u32>>, RangeInclusive<u32>>,
+        ((u32, u32), u32),
+    >,
+}
+
+impl<'a, D: Sized> Iterator for BoxIterator<'a, D> {
+    type Item = &'a D;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (x, y, z) = self.iter.next()?;
+            let c = Vector3 { x, y, z };
+            let idx = match self.data.pos_to_index(c) {
+                Some(idx) => idx,
+                None => {
+                    continue;
+                }
+            };
+
+            match self.data.cubes.get(idx) {
+                Some(cube) => match cube {
+                    Some(d) => {
+                        return Some(d);
+                    }
+                    None => {}
+                },
+                None => {}
+            }
+        }
     }
 
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (_min, max) = self.iter.size_hint();
+        (0, max)
+    }
 }
-impl<D: Sized + Default + Debug + Display + Clone> Hashing<D> for SpatialHashGrid<D> {
-    fn fill_cube(&mut self, v: Vector3<u32>) {
-        let i = self.pos_to_index(v).expect(format!("Position {:?} out of bounds!", v).as_str());
-        self.cubes[i] = Some(D::default());
+
+impl<D: Sized> Hashing<D> for SpatialHashGrid<D> {
+    fn fill_cube(&mut self, v: Vector3<u32>, filler: fn() -> D) {
+        let i = self
+            .pos_to_index(v)
+            .expect(format!("Position {:?} out of bounds!", v).as_str());
+        self.cubes[i] = Some(filler());
+    }
+
+    fn clear_cube(&mut self, v: Vector3<u32>) {
+        let i = self
+            .pos_to_index(v)
+            .expect(format!("Position {:?} out of bounds!", v).as_str());
+        self.cubes[i] = None;
     }
 
     fn get_cube_mut(&mut self, v: Vector3<u32>) -> Option<&mut D> {
@@ -141,28 +186,35 @@ impl<D: Sized + Default + Debug + Display + Clone> Hashing<D> for SpatialHashGri
         }
     }
 
-    fn iter_filled_boxes_mut(&mut self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIterator<D> {
-        BoxIterator{
-            data:  self,
-            iter: itertools::iproduct!( min.x..=max.x ,min.y..=max.y ,min.z..=max.z )
+    fn iter_filled_boxes(&self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIterator<D> {
+        BoxIterator {
+            data: self,
+            iter: itertools::iproduct!(min.x..=max.x, min.y..=max.y, min.z..=max.z),
         }
     }
 
-
+    fn iter_filled_boxes_mut(&mut self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIteratorMut<D> {
+        BoxIteratorMut {
+            data: self,
+            iter: itertools::iproduct!(min.x..=max.x, min.y..=max.y, min.z..=max.z),
+        }
+    }
 }
 
-pub trait Hashing<D: std::default::Default+Debug+Display+ Clone> {
-    fn fill_cube(&mut self, v: Vector3<u32>);
+pub trait Hashing<D: Sized> {
+    fn fill_cube(&mut self, v: Vector3<u32>, filler: fn() -> D);
+    fn clear_cube(&mut self, v: Vector3<u32>);
     fn get_cube_mut(&mut self, v: Vector3<u32>) -> Option<&mut D>;
     fn get_cube(&self, v: Vector3<u32>) -> Option<&D>;
-    fn iter_filled_boxes_mut(&mut self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIterator<D> ;
+    fn iter_filled_boxes(&self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIterator<D>;
+    fn iter_filled_boxes_mut(&mut self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIteratorMut<D>;
 }
 
 #[cfg(test)]
 mod tests {
-    use std::fmt;
     use crate::{Hashing, SpatialHashGrid};
     use cgmath::Vector3;
+    use std::fmt;
     use std::fmt::{Debug, Display, Formatter};
 
     #[derive(Debug, Clone)]
@@ -174,35 +226,25 @@ mod tests {
 
     impl Default for Data {
         fn default() -> Self {
-            Data { x: 0, y:0, z:0 }
+            Data { x: 0, y: 0, z: 0 }
         }
     }
 
     impl Display for Data {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
             f.write_str(&format!("{} {} {}", self.x, self.y, self.z))
         }
     }
 
     #[test]
     fn test_iter_boxes_mut() {
-        // let mut sh: SpatialHashGrid<Data> = SpatialHashGrid::new(10, 8, 6);
-        // for j in 0..10 {
-        //     let pos = Vector3::new(j, j, 0);
-        //     sh.fill_cube(pos);
-        //     if let Some(cube) = sh.get_cube_mut(pos) {
-        //         cube.some_data = (33 + j) as i8;
-        //     } else {
-        //         panic!("WAAAT");
-        //     }
-        // }
         let mut sh: SpatialHashGrid<Data> = SpatialHashGrid::new(5, 5, 5);
 
         for j in 0..5 {
             for k in 0..5 {
                 for z in 0..5 {
                     let pos = Vector3::new(j, k, z);
-                    sh.fill_cube(pos);
+                    sh.fill_cube(pos, Data::default);
                     if let Some(cube) = sh.get_cube_mut(pos) {
                         cube.x = j;
                         cube.y = k;
@@ -214,23 +256,19 @@ mod tests {
             }
         }
 
-
-
-
-        let min = Vector3::new(0, 0, 0);
+        let min = Vector3::new(5, 5, 5);
         let max = Vector3::new(5, 5, 5);
 
-        for i in  sh.iter_filled_boxes_mut(min, max){
+        for i in sh.iter_filled_boxes_mut(min, max) {}
+        // let p = Vector3 { x: 3, y: 3, z: 3 };
+        // sh.fill_cube(p, Data::default);
+        // sh.get_cube_mut(p).unwrap().x = 6666666;
+        
 
-        }
-        let p = Vector3 { x: 3, y: 3, z: 3 };
-        sh.fill_cube(p);
-        sh.get_cube_mut(p).unwrap().x = 6666666;
-
-
-        format!("{:?}",sh);
-
+        println!("{:?}", sh);
+    }
+    #[test]
+    fn test_iter_boxes(){
 
     }
 }
-
