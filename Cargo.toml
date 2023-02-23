@@ -1,8 +1,14 @@
 [package]
-name = "spatial_hash"
+name = "spatial_hash_3d"
 version = "0.1.0"
 edition = "2021"
-
+authors = ["Alexander Pyattaev", "Igor Bologov"]
+description = "3D spatial hash grid implementation optimized for speed. What it does/why you'd want one: https://www.youtube.com/watch?v=sx4IIQL0x7c"
+repository = "https://github.com/alexpyattaev/spatialhash"
+readme = "README.md"
+license = "GPL-2.0-or-later"
+keywords = [ "spatial hash", "3D", "gamedev"]
+categories = ["data-structures", "game-development","graphics"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
 

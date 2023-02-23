@@ -1,4 +1,3 @@
-// TODO: move Data struct and related code that is currently in lib into a cfg(test) block. The crate should be a library, not a binary.
 use cgmath::Vector3;
 use itertools::{ConsTuples, Product};
 use std::fmt::{Debug, Formatter};
@@ -14,7 +13,9 @@ pub struct SpatialHashGrid<D: Sized> {
 impl<D: Sized> SpatialHashGrid<D> {
     pub fn new(x: usize, y: usize, z: usize) -> Self {
         let cap = x * y * z;
+        // allocate memory
         let mut d = Vec::with_capacity(cap);
+        // initialize elements
         d.resize_with(cap, || None);
         Self {
             size_x: x,
@@ -23,6 +24,8 @@ impl<D: Sized> SpatialHashGrid<D> {
             cubes: d,
         }
     }
+
+    #[inline]
     fn pos_to_index(&self, v: Vector3<u32>) -> Option<usize> {
         if (v.x >= self.size_x as u32) || (v.y >= self.size_y as u32) || (v.z >= self.size_z as u32)
         {
@@ -31,15 +34,6 @@ impl<D: Sized> SpatialHashGrid<D> {
         return Some(
             v.x as usize + v.y as usize * self.size_x + v.z as usize * (self.size_x * self.size_y),
         );
-    }
-
-    #[allow(dead_code)]
-    fn pos_from_index(&self, v: usize) -> Vector3<usize> {
-        let x = v % (self.size_x * self.size_y) % self.size_x;
-        let y = v % (self.size_y * self.size_x) / self.size_x;
-        let z = v / (self.size_y * self.size_x);
-        let coordinates = Vector3::new(x, y, z);
-        coordinates
     }
 }
 
@@ -156,11 +150,11 @@ impl<'a, D: Sized> Iterator for BoxIterator<'a, D> {
 }
 
 impl<D: Sized> Hashing<D> for SpatialHashGrid<D> {
-    fn fill_cube(&mut self, v: Vector3<u32>, filler: fn() -> D) {
+    fn fill_cube(&mut self, v: Vector3<u32>, filler: D) {
         let i = self
             .pos_to_index(v)
             .expect(format!("Position {:?} out of bounds!", v).as_str());
-        self.cubes[i] = Some(filler());
+        self.cubes[i] = Some(filler);
     }
 
     fn clear_cube(&mut self, v: Vector3<u32>) {
@@ -202,7 +196,7 @@ impl<D: Sized> Hashing<D> for SpatialHashGrid<D> {
 }
 
 pub trait Hashing<D: Sized> {
-    fn fill_cube(&mut self, v: Vector3<u32>, filler: fn() -> D);
+    fn fill_cube(&mut self, v: Vector3<u32>, filler: D);
     fn clear_cube(&mut self, v: Vector3<u32>);
     fn get_cube_mut(&mut self, v: Vector3<u32>) -> Option<&mut D>;
     fn get_cube(&self, v: Vector3<u32>) -> Option<&D>;
@@ -244,7 +238,7 @@ mod tests {
             for k in 0..5 {
                 for z in 0..5 {
                     let pos = Vector3::new(j, k, z);
-                    sh.fill_cube(pos, Data::default);
+                    sh.fill_cube(pos, Data::default());
                     if let Some(cube) = sh.get_cube_mut(pos) {
                         cube.x = j;
                         cube.y = k;
@@ -261,14 +255,11 @@ mod tests {
 
         for i in sh.iter_filled_boxes_mut(min, max) {}
         // let p = Vector3 { x: 3, y: 3, z: 3 };
-        // sh.fill_cube(p, Data::default);
+        // sh.fill_cube(p, Data::default());
         // sh.get_cube_mut(p).unwrap().x = 6666666;
-        
 
         println!("{:?}", sh);
     }
     #[test]
-    fn test_iter_boxes(){
-
-    }
+    fn test_iter_boxes() {}
 }

@@ -5,7 +5,7 @@ use rand::{Rng, SeedableRng};
 use spatial_hash::*;
 use std::fmt::{Debug, Display, Formatter};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Data {
     some_data: u32,
 }
@@ -21,25 +21,19 @@ impl Display for Data {
         f.write_str(&format!("{}", self.some_data))
     }
 }
+
 fn create_and_fill(x: u32, y: u32, z: u32) -> SpatialHashGrid<Data> {
     let mut sh: SpatialHashGrid<Data> = SpatialHashGrid::new(x as usize, y as usize, z as usize);
     let mut count = 0;
-    for j in 0..x {
-        for k in 0..y {
-            for z in 0..z {
-                let pos = Vector3::new(j, k, z);
-                sh.fill_cube(pos, Data::default);
-                if let Some(cube) = sh.get_cube_mut(pos) {
-                    cube.some_data = count;
-                    count += 1;
-                } else {
-                    panic!("WAAAT");
-                }
-            }
-        }
+    for (i, j, k) in itertools::iproduct!(0..x, 0..y, 0..z) {
+        let pos = Vector3::new(i, j, k);
+        sh.fill_cube(pos, Data { some_data: count });
+        count += 1;
     }
     sh
 }
+
+/// Creates random bounding boxes within x,y,z size
 fn generate_bounding_box(
     rng: &mut SmallRng,
     x: u32,
@@ -67,12 +61,15 @@ fn bench_get_filled_data(sh: &SpatialHashGrid<Data>, min: Vector3<u32>, max: Vec
         black_box(i);
     }
 }
+
 fn bench_modify_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
     for i in sh.iter_filled_boxes_mut(min, max) {
         i.some_data += 1;
     }
 }
 
+/// Measures how quickly the data is retrieved from the structure
+/// Two tests inside - one for mutable and one for immutable iteration
 pub fn bench_get_data_if_there(c: &mut Criterion) {
     let mut rng = SmallRng::seed_from_u64(42);
 
@@ -127,5 +124,24 @@ pub fn bench_get_data_if_there(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_get_data_if_there);
+/// Measures how quickly the data is filled in the structure
+/// Should be pretty fast if size of D is small
+
+pub fn bench_fill_data(c: &mut Criterion) {
+    let mut group = c.benchmark_group("writes");
+    for size in [5u32, 10, 20] {
+        group.bench_with_input(
+            criterion::BenchmarkId::from_parameter(size),
+            &size,
+            |b, &size| {
+                b.iter(|| {
+                    let spatial = create_and_fill(size, size, size);
+                    black_box(spatial);
+                })
+            },
+        );
+    }
+}
+
+criterion_group!(benches, bench_get_data_if_there, bench_fill_data);
 criterion_main!(benches);
