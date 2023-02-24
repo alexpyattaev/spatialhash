@@ -1,8 +1,10 @@
-# Spatialhash
-Generic spatial hash grid in Rust. 
+# Spatialhash 3D
+Generic 3D spatial hash grid in Rust. 
 
 Allows to efficiently translate spatial requests into cells with content. 
 The implementation does not care what is stored in the cells, as long as it is Sized.
+
+Internally the datastructure is a wrapper over vector with index translation.
 
 ``` Rust
 
