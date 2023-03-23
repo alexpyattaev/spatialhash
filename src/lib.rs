@@ -26,8 +26,8 @@ impl<D: Sized> SpatialHashGrid<D> {
         }
     }
 
-
-    fn get_size_of_scene(&self)-> Vector3<usize>{
+    #[inline]
+    pub fn size(&self)-> Vector3<usize>{
         Vector3{
             x: self.size_x,
             y: self.size_y,
