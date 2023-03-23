@@ -26,6 +26,15 @@ impl<D: Sized> SpatialHashGrid<D> {
         }
     }
 
+
+    fn get_size_of_scene(&self)-> Vector3<usize>{
+        Vector3{
+            x: self.size_x,
+            y: self.size_y,
+            z: self.size_z,
+        }
+    }
+
     #[inline]
     fn pos_to_index(&self, v: Vector3<u32>) -> Option<usize> {
         if (v.x >= self.size_x as u32) || (v.y >= self.size_y as u32) || (v.z >= self.size_z as u32)
