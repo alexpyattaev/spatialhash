@@ -27,7 +27,26 @@ impl<D: Sized> SpatialHashGrid<D> {
     }
 
     #[inline]
-    fn pos_to_index(&self, v: Vector3<u32>) -> Option<usize> {
+    pub fn size(&self)-> Vector3<usize>{
+        Vector3{
+            x: self.size_x,
+            y: self.size_y,
+            z: self.size_z,
+        }
+    }
+
+    #[inline(always)]
+    pub fn get_mut(&mut self, idx:usize)->Option<&mut D>{
+        self.cubes.get_mut(idx)
+    }
+
+    #[inline(always)]
+    pub fn get(&mut self, idx:usize)->Option<& D>{
+        self.cubes.get(idx)
+    }
+
+    #[inline]
+    pub fn pos_to_index(&self, v: Vector3<u32>) -> Option<usize> {
         if (v.x >= self.size_x as u32) || (v.y >= self.size_y as u32) || (v.z >= self.size_z as u32)
         {
             return None;
@@ -86,7 +105,7 @@ pub struct BoxIteratorMut<'a, D: Sized> {
 }
 
 impl<'a, D: Sized> Iterator for BoxIteratorMut<'a, D> {
-    type Item = (Vector3<u32>, &'a mut D);
+    type Item = (Vector3<u32>, usize, &'a mut D);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -107,7 +126,7 @@ impl<'a, D: Sized> Iterator for BoxIteratorMut<'a, D> {
                 // SAFETY: we know this can not possibly point to anything invalid
                 // We also know that the returned reference should not outlive the iterator
                 // unless user does "something really terrible"(tm)
-                return Some((c, d.as_mut().unwrap_unchecked()));
+                return Some((c,idx, d.as_mut().unwrap_unchecked()));
             }
         }
     }
@@ -127,7 +146,7 @@ pub struct BoxIterator<'a, D: Sized> {
 }
 
 impl<'a, D: Sized> Iterator for BoxIterator<'a, D> {
-    type Item = (Vector3<u32>, &'a D);
+    type Item = (Vector3<u32>, usize, &'a D);
 
     #[inline]
     fn next(&mut self) -> Option<Self::Item> {
@@ -142,7 +161,7 @@ impl<'a, D: Sized> Iterator for BoxIterator<'a, D> {
             };
             let d = self.data.cubes.get(idx);
 
-            return Some((c, d.unwrap()));
+            return Some((c, idx, d.unwrap()));
         }
     }
     #[inline]
@@ -166,6 +185,23 @@ impl<D: Sized> std::ops::IndexMut<Vector3<u32>> for SpatialHashGrid<D> {
     fn index_mut(&mut self, index: Vector3<u32>) -> &mut Self::Output {
         let i = self.pos_to_index(index).expect("Index out of bounds");
         self.cubes.index_mut(i)
+    }
+}
+
+
+
+impl<D: Sized> std::ops::Index<usize> for SpatialHashGrid<D> {
+    type Output = D;
+    #[inline]
+    fn index(&self, index: usize) -> &Self::Output {
+        self.cubes.index(index)
+    }
+}
+
+impl<D: Sized> std::ops::IndexMut<usize> for SpatialHashGrid<D> {
+    #[inline]
+    fn index_mut(&mut self, index:usize) -> &mut Self::Output {
+        self.cubes.index_mut(index)
     }
 }
 
@@ -203,13 +239,13 @@ mod tests {
         let b = Vector3::new(2, 1, 2);
         let max = Vector3::new(sx, sy, sz);
 
-        for i in sh.iter_cubes_mut(min, b) {
-            *i.1 += 1;
+        for (_p, _i, d) in sh.iter_cubes_mut(min, b) {
+            *d += 1;
         }
 
         let mut count = 0;
-        for i in sh.iter_cubes(min, max) {
-            count += *i.1;
+        for (_p, _i, d)  in sh.iter_cubes(min, max) {
+            count += *d;
         }
         assert_eq!(
             count,
