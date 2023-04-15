@@ -3,11 +3,21 @@ use itertools::{ConsTuples, Product};
 use std::fmt::{Debug, Formatter};
 use std::ops::RangeInclusive;
 
+
 pub struct SpatialHashGrid<D: Sized> {
-    size_x: usize,
-    size_y: usize,
-    size_z: usize,
+    dims: Vector3<usize>,
     cubes: Vec<D>,
+}
+
+#[inline]
+fn pos_to_index(dims: Vector3<usize>, v: Vector3<u32>) -> Option<usize> {
+    if (v.x >= dims[0] as u32) || (v.y >= dims[1] as u32) || (v.z >= dims[2] as u32)
+    {
+        return None;
+    }
+    Some(
+        v.x as usize + v.y as usize * dims[0] + v.z as usize * (dims[0] * dims[1]),
+    )
 }
 
 impl<D: Sized> SpatialHashGrid<D> {
@@ -19,20 +29,14 @@ impl<D: Sized> SpatialHashGrid<D> {
         // initialize elements
         d.resize_with(cap, filler);
         Self {
-            size_x: x,
-            size_y: y,
-            size_z: z,
+            dims: Vector3::new(x, y, z),
             cubes: d,
         }
     }
 
     #[inline]
     pub fn size(&self)-> Vector3<usize>{
-        Vector3{
-            x: self.size_x,
-            y: self.size_y,
-            z: self.size_z,
-        }
+        self.dims
     }
 
     #[inline(always)]
@@ -47,16 +51,18 @@ impl<D: Sized> SpatialHashGrid<D> {
 
     #[inline]
     pub fn pos_to_index(&self, v: Vector3<u32>) -> Option<usize> {
-        if (v.x >= self.size_x as u32) || (v.y >= self.size_y as u32) || (v.z >= self.size_z as u32)
-        {
-            return None;
+        pos_to_index(self.dims, v)
+    }
+    ///Iterate over cubes indices in given bounds [min, max]
+    #[inline]
+    pub fn iter_cube_indices(&self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIdxIterator {
+        BoxIdxIterator {
+            dims: self.dims,
+            iter: itertools::iproduct!(min.x..=max.x, min.y..=max.y, min.z..=max.z),
         }
-        return Some(
-            v.x as usize + v.y as usize * self.size_x + v.z as usize * (self.size_x * self.size_y),
-        );
     }
 
-    ///Iterate over filled cubes in given bounds [min, max] inside the main cube in read only state
+    ///Iterate over cubes in given bounds [min, max] inside the main cube in read only state
     #[inline]
     pub fn iter_cubes(&self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIterator<D> {
         BoxIterator {
@@ -64,7 +70,7 @@ impl<D: Sized> SpatialHashGrid<D> {
             iter: itertools::iproduct!(min.x..=max.x, min.y..=max.y, min.z..=max.z),
         }
     }
-    ///Iterate over filled cubes in given bounds [min, max] in read and write state.
+    ///Iterate over cubes in given bounds [min, max] in read and write state.
     #[inline]
     pub fn iter_cubes_mut(&mut self, min: Vector3<u32>, max: Vector3<u32>) -> BoxIteratorMut<D> {
         BoxIteratorMut {
@@ -79,12 +85,12 @@ impl<D: Debug> Debug for SpatialHashGrid<D> {
         write!(
             f,
             "<SpatialHashGrid {}x{}x{}:\n",
-            self.size_x, self.size_y, self.size_z
+            self.dims[0], self.dims[1],self.dims[2]
         )?;
-        for z in 0..self.size_z {
+        for z in 0..self.dims[2] {
             write!(f, "#Slice z={}:\n", z)?;
-            for x in 0..self.size_x {
-                for y in 0..self.size_y {
+            for x in 0..self.dims[0] {
+                for y in 0..self.dims[1] {
                     let v = Vector3::new(x as u32, y as u32, z as u32);
                     let idx = self.pos_to_index(v).expect("This can not go wrong");
                     write!(f, "{:?}, ", &self.cubes[idx])?;
@@ -170,6 +176,41 @@ impl<'a, D: Sized> Iterator for BoxIterator<'a, D> {
         (0, max)
     }
 }
+
+
+
+pub struct BoxIdxIterator {
+    dims: Vector3<usize>,
+    iter: ConsTuples<
+        Product<Product<RangeInclusive<u32>, RangeInclusive<u32>>, RangeInclusive<u32>>,
+        ((u32, u32), u32),
+    >,
+}
+
+impl Iterator for BoxIdxIterator {
+    type Item = (Vector3<u32>, usize);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let (x, y, z) = self.iter.next()?;
+            let c = Vector3 { x, y, z };
+            let idx = match pos_to_index(self.dims, c) {
+                Some(idx) => idx,
+                None => {
+                    continue;
+                }
+            };
+            return Some((c, idx));
+        }
+    }
+    #[inline]
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let (_min, max) = self.iter.size_hint();
+        (0, max)
+    }
+}
+
 
 impl<D: Sized> std::ops::Index<Vector3<u32>> for SpatialHashGrid<D> {
     type Output = D;
