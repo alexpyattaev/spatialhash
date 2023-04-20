@@ -4,7 +4,7 @@ Generic spatial hash grid in Rust.
 Allows to efficiently translate spatial requests into cells with content. 
 The implementation does not care what is stored in the cells, as long as it is Sized.
 
-``` Rust
+```rust
 
 // create spatial hash grid of size 5x10x20
 let mut sh: SpatialHashGrid<u64> = SpatialHashGrid::new(5, 10, 20);

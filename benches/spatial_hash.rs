@@ -51,15 +51,16 @@ fn generate_bounding_box(
 }
 
 fn bench_get_filled_data(sh: &SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for (c, i) in sh.iter_cubes(min, max) {
+    for (c, elem) in sh.iter_cubes(min, max) {
         black_box(c);
-        black_box(i);
+        black_box(elem);
     }
 }
 
 fn bench_modify_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for (c, i) in sh.iter_cubes_mut(min, max) {
-        i.some_data += c.x;
+    for (c,idx, elem) in sh.iter_cubes_mut(min, max) {
+        elem.some_data += c.x;
+        black_box(idx);
     }
 }
 
