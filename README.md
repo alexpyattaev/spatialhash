@@ -1,8 +1,14 @@
+
+
+
 # Spatialhash
 Generic spatial hash grid in Rust. 
 
 Allows to efficiently translate spatial requests into cells with content. 
 The implementation does not care what is stored in the cells, as long as it is Sized.
+
+[![Crates.io](https://img.shields.io/crates/v/spatial_hash_3d)](https://crates.io/crates/spatial_hash_3d)
+[![Documentation](https://docs.rs/spatial_hash_3d/badge.svg)](https://docs.rs/spatial_hash_3d/)
 
 ```rust
 use spatial_hash_3d::SpatialHashGrid;
