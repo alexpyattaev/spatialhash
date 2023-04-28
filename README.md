@@ -1,4 +1,5 @@
-
+[![Crates.io](https://img.shields.io/crates/v/spatial_hash_3d)](https://crates.io/crates/spatial_hash_3d)
+[![Documentation](https://docs.rs/spatial_hash_3d/badge.svg)](https://docs.rs/spatial_hash_3d/)
 
 
 # Spatialhash
@@ -7,8 +8,8 @@ Generic spatial hash grid in Rust.
 Allows to efficiently translate spatial requests into cells with content. 
 The implementation does not care what is stored in the cells, as long as it is Sized.
 
-[![Crates.io](https://img.shields.io/crates/v/spatial_hash_3d)](https://crates.io/crates/spatial_hash_3d)
-[![Documentation](https://docs.rs/spatial_hash_3d/badge.svg)](https://docs.rs/spatial_hash_3d/)
+
+# Usage
 
 ```rust
 use spatial_hash_3d::SpatialHashGrid;
@@ -49,6 +50,7 @@ This was optimized for speed and not memory efficiency.
  - Read and write complexity is O(1).
  - A matrix for entire volume will always be preallocated at grid creation, so memory usage is proportional to *volume*.
  - No dynamic resizing capability was envisioned for this, as most usecases that care do not need it.
+ - Instead of making a denser spatial hash with more cells, you may want to put a more flexible data structure inside, such as a [tree](https://crates.io/crates/spatialtree)
 
 # Iterators
 Iterators are provided to access content within a given axis-aligned volume. All iterators have complexity proportional to
