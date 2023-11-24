@@ -10,6 +10,9 @@ license = "GPL-2.0-or-later"
 keywords = [ "spatial", "3D", "gamedev"]
 categories = ["data-structures", "game-development","graphics"]
 documentation = "https://docs.rs/spatial_hash_3d/"
+exclude = [
+    ".github/",
+]
 [lib]
 
 
@@ -25,3 +28,4 @@ rand_derive = "~0.5"
 [[bench]]
 name = "spatial_hash"
 harness = false
+
