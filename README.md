@@ -2,11 +2,12 @@
 [![Documentation](https://docs.rs/spatial_hash_3d/badge.svg)](https://docs.rs/spatial_hash_3d/)
 
 
-# Spatialhash
+# Spatial Hash over 3D volumes
 Generic spatial hash grid in Rust. 
 
 Allows to efficiently translate spatial requests into cells with content. 
 The implementation does not care what is stored in the cells, as long as it is Sized.
+All storage is in one block of memory for best possible cache locality.
 
 
 # Usage
@@ -34,7 +35,7 @@ for (c,elem) in sh.iter_cubes(Vector3::new(1, 2, 3), Vector3::new(4, 5, 4)).filt
 
 ```
 
-When creating spatial hash, you can pass any closure, so you can have different content in cells.
+When creating spatial hash, you can pass any closure, so you can have different content in cells at creation.
 
 ```rust
 # use spatial_hash_3d::SpatialHashGrid;
@@ -64,11 +65,11 @@ is provided (which can be returned by any iterator or obtained from valid coordi
 # let mut sh: SpatialHashGrid<u64> = SpatialHashGrid::new(5, 10, 20, ||{0});
 
 // construct iterator that returns indices
-let cubesiter = sh.iter_cubes(Vector3::new(1, 2, 3), Vector3::new(4, 5, 4)).with_index();
+let cubes_iter = sh.iter_cubes(Vector3::new(1, 2, 3), Vector3::new(4, 5, 4)).with_index();
 // vec to hold interesting cube references
 let mut interesting = vec![];
 // go over the iterator saving references
-for (c,idx, elem) in cubesiter {
+for (c,idx, elem) in cubes_iter {
     println!("{c:?} {idx} {elem}");
     if *elem == 42{
         interesting.push(idx);

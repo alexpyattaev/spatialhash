@@ -1,6 +1,6 @@
 [package]
 name = "spatial_hash_3d"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Alexander Pyattaev", "Igor Bologov"]
 description = "3D spatial hash grid implementation optimized for speed. What it does/why you'd want one: https://www.youtube.com/watch?v=sx4IIQL0x7c"
