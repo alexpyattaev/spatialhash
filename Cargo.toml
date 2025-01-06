@@ -18,7 +18,7 @@ exclude = [
 
 [dependencies]
 cgmath = "~0.18"
-itertools = "~0.13"
+itertools = "~0.14"
 
 [dev-dependencies]
 criterion = "~0.5"
