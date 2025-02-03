@@ -22,7 +22,7 @@ itertools = "~0.13"
 
 [dev-dependencies]
 criterion = "~0.5"
-rand ={version="~0.8", features=['small_rng']}
+rand ={version="~0.9", features=['small_rng']}
 rand_derive = "~0.5"
 
 [[bench]]
