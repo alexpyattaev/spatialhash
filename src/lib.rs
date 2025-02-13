@@ -121,9 +121,7 @@ pub struct BoxIdxIterator {
     dims: Vector3<usize>,
     #[allow(clippy::type_complexity)]
     iter: ConsTuples<
-    Product<Product<RangeInclusive<u32>, RangeInclusive<u32>>, RangeInclusive<u32>>,
-    ((u32, u32), u32),
-    >,
+    Product<Product<RangeInclusive<u32>, RangeInclusive<u32>>, RangeInclusive<u32>>>,
 }
 
 
