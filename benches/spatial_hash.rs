@@ -1,8 +1,9 @@
 use cgmath::Vector3;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use spatial_hash_3d::*;
+use std::hint::black_box;
 
 #[derive(Debug)]
 pub struct Data {
@@ -35,14 +36,14 @@ fn generate_bounding_box(
     z: u32,
 ) -> (Vector3<u32>, Vector3<u32>) {
     let min = Vector3::new(
-        rng.gen_range(0..(x - 2)),
-        rng.gen_range(0..(y - 2)),
-        rng.gen_range(0..(z - 2)),
+        rng.random_range(0..(x - 2)),
+        rng.random_range(0..(y - 2)),
+        rng.random_range(0..(z - 2)),
     );
     let max = Vector3::new(
-        rng.gen_range(min.x..x),
-        rng.gen_range(min.y..y),
-        rng.gen_range(min.z..z),
+        rng.random_range(min.x..x),
+        rng.random_range(min.y..y),
+        rng.random_range(min.z..z),
     );
     if min.x > max.x || min.y > max.y || min.z > max.z {
         panic!("Generated volume is not in this Universe");
@@ -58,7 +59,7 @@ fn bench_get_filled_data(sh: &SpatialHashGrid<Data>, min: Vector3<u32>, max: Vec
 }
 
 fn bench_modify_filled_data(sh: &mut SpatialHashGrid<Data>, min: Vector3<u32>, max: Vector3<u32>) {
-    for (c,idx, elem) in sh.iter_cubes_mut(min, max) {
+    for (c, idx, elem) in sh.iter_cubes_mut(min, max) {
         elem.some_data += c.x;
         black_box(idx);
     }
