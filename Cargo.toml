@@ -21,7 +21,7 @@ cgmath = "~0.18"
 itertools = "~0.14"
 
 [dev-dependencies]
-criterion = "~0.7"
+criterion = "~0.8"
 rand ={version="~0.9", features=['small_rng']}
 rand_derive = "~0.5"
 
